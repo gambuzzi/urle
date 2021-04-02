@@ -212,7 +212,10 @@ def compress(data : bytes) -> bytes:
     ret[1] = (len_data & 0xff00) >> 8
     ptr = _compress_asm(data, ret, len_data)
 
-    return ret[:ptr]
+    if ptr<len(ret):
+        return ret[:ptr]
+    else:
+        return ret
 
 
 #@micropython.native
@@ -239,6 +242,9 @@ def decompress(data : bytes) -> bytes:
     return ret
 
 def tests():
+    assert b'aaaaa\xc0bbbb\xc1' == decompress(compress(b'aaaaa\xc0bbbb\xc1'))
+    assert compress(b'aaaabbbbppp') == b'\x0b\x00\xc4a\xc4b\xc3p'
+    assert compress(b'aaaabbbbp') == b'\t\x00\xc4a\xc4bp'
     assert compress(b'aaaabbbbp') == b'\t\x00\xc4a\xc4bp'
     assert compress(b'aaaabbbbppp') == b'\x0b\x00\xc4a\xc4b\xc3p'
     assert b'aaaaap' == decompress(compress(b'aaaaap'))
@@ -252,12 +258,28 @@ def tests():
     except AssertionError as e:
         print(rand)
         print(cdata)
-        raise e
+        raise e    
 
+def benchmarks():    
+    from utime import ticks_ms
+    from random import randint
+    times = const(10)
+    
+    rand = bytearray(32000)
+    for i in range(len(rand)):
+        rand[i] = randint(0, 255)
+    
+    t0 = ticks_ms()
+    for _ in range(times):
+        compress(rand)
+    t1 = ticks_ms()
+    print((t1-t0)/times)  # 11.73 ms on rpi pico r2040
 
-#assert b'aaaaa\xc0bbbb\xc1' == decompress(compress(b'aaaaa\xc0bbbb\xc1'))
-#assert compress(b'aaaabbbbppp') == b'\x0b\x00\xc4a\xc4b\xc3p'
-#assert compress(b'aaaabbbbp') == b'\t\x00\xc4a\xc4bp'
-#for _ in range(2000):
-#    tests()
-#print('OK')
+    t0 = ticks_ms()
+    for _ in range(times):
+        compress_python(rand)
+    t1 = ticks_ms()
+    print((t1-t0)/times)  # 985.2 ms on rpi pico r2040
+
+# benchmarks()
+
