@@ -30,7 +30,7 @@ jobs:
     - name: Print the version of mpy-cross
       id: print_ver
       run: |
-        echo "::set-output name=version::`mpy-cross --version`"
+        echo "::set-output name=version::`mpy-cross --version | awk 'BEGIN { FS="[ ]" } ; { print $2 }'`"
 
     - name: Get the datetime
       id: get_datetime
