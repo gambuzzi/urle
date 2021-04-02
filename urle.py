@@ -52,7 +52,7 @@ def _compress(data, ret, len_data):
             for ptr in range(len_data):
                 ret[2+ptr] = data[ptr]
             return 2+len_data
-        
+
         if b!=pre_b or cnt==0x3F:
             if cnt>1 or pre_b>=0xC0:
                 val : int = 0xC0 + cnt
@@ -70,25 +70,25 @@ def _compress(data, ret, len_data):
     return ptr
 
 
-@micropython.asm_thumb 
+@micropython.asm_thumb
 def _compress_asm(r0,r1,r2):
     push({r0,r1,r2})
-    
+
     add(r1,2)
-    
+
     mov(r6, r2)
-    
+
     ldrb(r3, [r0,0])  # pre_b = data[0]
     add(r0, 1)
     sub(r2, 1)
     mov(r4, 1)  # cnt = 1
-    
+
     label (LOOP)
-    
+
     ldrb(r5, [r0,0])  # b
     add(r0, 1)
     sub(r2, 1)
-    
+
     cmp(r6, 3)  # r6 keep count of how many bytes are written in the output buffer
     bge(SKIP_UNCOMPRESSED)
     pop({r0,r1,r2})
@@ -98,7 +98,7 @@ def _compress_asm(r0,r1,r2):
     strb(r4, [r1, 0])
     strb(r4, [r1, 1])
     add(r1,2)
-    
+
     label(UNCOMPRESSED_LOOP)
     cmp(r2,0)
     beq(EXIT)
@@ -108,16 +108,16 @@ def _compress_asm(r0,r1,r2):
     add(r0,1)
     add(r1,1)
     b(UNCOMPRESSED_LOOP)
-        
-    label(SKIP_UNCOMPRESSED)    
+
+    label(SKIP_UNCOMPRESSED)
 
     # if b!=pre_b or cnt==0x3F:
     cmp(r3,r5)
     bne(THEN_1)
     cmp(r4, 0x3F)
-    bne(ELSE_1)    
+    bne(ELSE_1)
     label(THEN_1)
-    
+
     #if cnt>1 or pre_b>=0xC0:
     cmp(r4, 1)
     bgt(THEN_2)
@@ -129,20 +129,20 @@ def _compress_asm(r0,r1,r2):
     add(r7, 0xC0)
     strb(r7,[r1,0])
     add(r1,1)
-    sub(r6,1)    
+    sub(r6,1)
     label(ENDIF_2)
-    
+
     strb(r3,[r1,0])  # ret append pre_b
     add(r1,1)
-    sub(r6,1)    
+    sub(r6,1)
     mov(r3, r5)  # pre_b = b
     mov(r4, 1) # cnt = 1
-    
+
     b(ENDIF_1)
     label(ELSE_1)
     add(r4, 1)  # cnt += 1
     label(ENDIF_1)
-    
+
     cmp(r2,0)
     bgt(LOOP)
     label(END_LOOP)
@@ -158,19 +158,19 @@ def _compress_asm(r0,r1,r2):
     add(r7, 0xC0)
     strb(r7,[r1,0])
     add(r1,1)
-    sub(r6,1)    
+    sub(r6,1)
     label(ENDIF_3)
-    
+
     strb(r3,[r1,0])  # ret append pre_b
     add(r1,1)
-    sub(r6,1)    
+    sub(r6,1)
 
     mov(r3, r1)
     pop({r0,r1,r2})
     sub(r3, r3, r1)
     label(EXIT)
     mov(r0, r3)
-    
+
 
 def compress_python(data : bytes) -> bytes:
     """
@@ -253,33 +253,32 @@ def tests():
     for i in range(len(rand)):
         rand[i] = randint(0, 255)
     cdata = compress(rand)
-    try:       
+    try:
         assert decompress(cdata)==rand
     except AssertionError as e:
         print(rand)
         print(cdata)
-        raise e    
+        raise e
 
-def benchmarks():    
+def benchmarks():
     from utime import ticks_ms
     from random import randint
     times = const(10)
-    
+
     rand = bytearray(32000)
     for i in range(len(rand)):
         rand[i] = randint(0, 255)
-    
+
     t0 = ticks_ms()
     for _ in range(times):
         compress(rand)
     t1 = ticks_ms()
-    print((t1-t0)/times)  # 11.73 ms on rpi pico r2040
+    print((t1-t0)/times)  # 11.73 ms on rpi pico rp2040
 
     t0 = ticks_ms()
     for _ in range(times):
         compress_python(rand)
     t1 = ticks_ms()
-    print((t1-t0)/times)  # 985.2 ms on rpi pico r2040
+    print((t1-t0)/times)  # 985.2 ms on rpi pico rp2040
 
 # benchmarks()
-
