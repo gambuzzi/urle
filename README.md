@@ -1,2 +1,2 @@
-# urle
-µRLE - run length encoding for micropython
+# µRLE
+Run-length encoder/decoder for micropython
